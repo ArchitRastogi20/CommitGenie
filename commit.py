@@ -27,7 +27,7 @@ Git diff:
     if response.status_code == 200:
         response_text = response.text
         data = json.loads(response_text)
-        actual_response = data['response']  
+        actual_response = data['response']
         return actual_response
     else:
         raise Exception("Request failed with status code:", response.status_code, response.text)
@@ -79,20 +79,15 @@ def merge_branch():
         print("\n⚠️ Could not determine the current branch.")
         return
 
-    merge_to_develop = input("\nDo you want to merge into 'develop'? (y/N): ").strip().lower()
-    
-    if merge_to_develop != "y":
-        branches = list_branches()
-        print("\nAvailable branches:")
-        for i, branch in enumerate(branches, 1):
-            print(f"{i}. {branch}")
-        
-        target_branch = input("\nEnter the branch name you want to merge into: ").strip()
-        if target_branch not in branches:
-            print("\n⚠️ Invalid branch selected. Aborting merge.")
-            return
-    else:
-        target_branch = "develop"
+    branches = list_branches()
+    print("\nAvailable branches:")
+    for i, branch in enumerate(branches, 1):
+        print(f"{i}. {branch}")
+
+    target_branch = input("\nEnter the branch name you want to merge into: ").strip()
+    if target_branch not in branches:
+        print("\n⚠️ Invalid branch selected. Aborting merge.")
+        return
 
     print(f"\n🚀 Merging '{current_branch}' into '{target_branch}'...")
     try:
@@ -103,10 +98,11 @@ def merge_branch():
     except subprocess.CalledProcessError:
         print("\n❌ Merge failed. Resolve conflicts and try again.")
 
-def main(model_choice=None):
-    make_commit = input("\nDo you want to make a commit? (y/N): ").strip().lower()
+def main(model_choice=""):
+    # Prompt the user to choose an action: commit or merge
+    action = input("\nDo you want to create a commit message (c) or perform a merge (m)? (c/m): ").strip().lower()
     
-    if make_commit == "y":
+    if action == "c":
         diff_output = subprocess.check_output(
             ["git", "diff", "--cached"],
             encoding="utf-8",
@@ -116,9 +112,11 @@ def main(model_choice=None):
             print("No staged changes found. Please stage your changes with 'git add'.")
             return
 
-        # Model selection
-        if model_choice is None:
+        # If the model_choice variable is empty, ask the user to choose a model.
+        if not model_choice:
             model_choice = input("\nSelect model (0 for Ollama, 1 for ChatGPT): ").strip().lower()
+
+        # Choose the appropriate commit message generator based on the model selection.
         if model_choice in ["0", "ollama"]:
             generate_commit_message = generate_commit_message_ollama
         elif model_choice in ["1", "gpt", "chatgpt"]:
@@ -127,7 +125,7 @@ def main(model_choice=None):
             print("Invalid model selection. Defaulting to ChatGPT.")
             generate_commit_message = generate_commit_message_chatgpt
 
-        # Loop until a commit message is accepted
+        # Loop until a commit message is accepted.
         while True:
             commit_msg = generate_commit_message(diff_output, style="concise and clear")
             print("\nSuggested Commit Message:\n")
@@ -151,11 +149,16 @@ def main(model_choice=None):
                 print("\n🚫 Push skipped.")
         else:
             print("\n⚠️ Could not determine the current branch. Please push manually if needed.")
+    
+    elif action == "m":
+        merge_branch()
+    
     else:
-        merge_confirm = input("\nDo you want to do a merge? (y/N): ").strip().lower()
-        if merge_confirm == "y":
-            merge_branch()
+        print("Invalid selection. Please choose either 'c' for commit or 'm' for merge.")
 
 if __name__ == "__main__":
-    model_choice = "" # 0 for Ollama, 1 for ChatGPT
+    # Set the model_choice variable here.
+    # If left empty (""), the user will be asked for model selection.
+    # Use "0" or "ollama" for Ollama, or "1", "gpt", "chatgpt" for ChatGPT.
+    model_choice = ""  
     main(model_choice)
